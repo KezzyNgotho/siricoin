@@ -7,7 +7,8 @@ import { BottomTabNavigator } from "../Navigation/TabNavigator";
  import LoginScreen from '../Screens/LoginScreen';
 import RegistrationScreen from "../Screens/RegistrationScreen";
 import HomeScreen from "../Screens/HomeScreen";
-
+import PasswordResetScreen from "../Screens/PasswordResetScreen";
+import WithdrawScreen from "../Screens/WithdrawScreen";
 const Stack = createNativeStackNavigator();
 
 const MainStackNavigator = () => {
@@ -23,6 +24,8 @@ const MainStackNavigator = () => {
   return (
     <Stack.Navigator screenOptions={screenOptionStyle} initialRouteName={"HomeScreen"}>
       <Stack.Screen name="Home" component={HomeScreen} />
+      <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+
 
      
     </Stack.Navigator>
@@ -46,6 +49,7 @@ const LoginStackNavigator = () => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Registration" component={RegistrationScreen} />
       <Stack.Screen name="Main" component={BottomTabNavigator} />
+      <Stack.Screen name="Password" component={PasswordResetScreen} />
     </Stack.Navigator>
   );
 }

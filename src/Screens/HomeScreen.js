@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-
+import { useNavigation } from '@react-navigation/native';
 const HomeScreen = () => {
+
+  const navigation = useNavigation();
   const [showCard, setShowCard] = useState(false); // State variable for card expansion
 
   const toggleCardVisibility = () => {
@@ -31,7 +33,9 @@ const HomeScreen = () => {
     </View>
     {/* Button section */}
     <View style={styles.buttonContainer}>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+      onPress={() => navigation.navigate('Withdraw')}
+       style={styles.button}>
         <View style={styles.iconBackground}>
           <Image
             source={require('../assets/icons8-wallet-64.png')}
