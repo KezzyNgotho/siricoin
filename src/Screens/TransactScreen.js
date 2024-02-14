@@ -41,7 +41,9 @@ const TransactScreen = () => {
         </TouchableOpacity>
 
         {/* Deposit */}
-        <TouchableOpacity style={styles.iconButton}>
+        <TouchableOpacity 
+          onPress={() => navigation.navigate('Invest')}
+        style={styles.iconButton}>
           <View style={styles.iconBackground}>
             <Image
               source={require('../assets/icons8-plus-64.png')}

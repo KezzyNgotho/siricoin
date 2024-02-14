@@ -44,7 +44,9 @@ const HomeScreen = () => {
         </View>
         <Text style={styles.buttonText}>Withdraw</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity 
+       onPress={() => navigation.navigate('Pending')}
+      style={styles.button}>
         <View style={styles.iconBackground}>
           <Image
             source={require('../assets/icons8-pending-50.png')}
@@ -53,7 +55,11 @@ const HomeScreen = () => {
         </View>
         <Text style={styles.buttonText}>Pending</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity 
+       onPress={() => navigation.navigate('Statements')}
+    
+      style={styles.button}>
+        
         <View style={styles.iconBackground}>
           <Image
             source={require('../assets/icons8-note-50.png')}
@@ -62,7 +68,9 @@ const HomeScreen = () => {
         </View>
         <Text style={styles.buttonText}>Statements</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity 
+      onPress={() => navigation.navigate('Terms')}
+      style={styles.button}>
         <View style={styles.iconBackground}>
           <Image
             source={require('../assets/icons8-copyleft-50.png')}

@@ -3,12 +3,14 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTheme } from "react-native-paper";
 
 import { BottomTabNavigator } from "../Navigation/TabNavigator";
-
+import StatementsScreen from "../Screens/StatementsScreen";
  import LoginScreen from '../Screens/LoginScreen';
 import RegistrationScreen from "../Screens/RegistrationScreen";
 import HomeScreen from "../Screens/HomeScreen";
 import PasswordResetScreen from "../Screens/PasswordResetScreen";
 import WithdrawScreen from "../Screens/WithdrawScreen";
+import PendingScreen from "../Screens/PendingScreen";
+import TermsScreen from "../Screens/TermsScreen";
 const Stack = createNativeStackNavigator();
 
 const MainStackNavigator = () => {
@@ -25,7 +27,12 @@ const MainStackNavigator = () => {
     <Stack.Navigator screenOptions={screenOptionStyle} initialRouteName={"HomeScreen"}>
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Withdraw" component={WithdrawScreen} />
+      <Stack.Screen name="Pending" component={PendingScreen} />
+      <Stack.Screen name="Statements" component={StatementsScreen} />
+      <Stack.Screen name="Terms" component={TermsScreen} />
 
+
+     
 
      
     </Stack.Navigator>

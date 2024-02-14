@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
+import axios from 'axios'; // Import Axios
 
 const RegistrationScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const RegistrationScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
 
-  const handleRegistration = () => {
+  const handleRegistration = async () => {
     if (!email || !password || !confirmPassword || !mobileNumber || !username) {
       setError('Please fill in all fields');
       return;
@@ -21,10 +22,22 @@ const RegistrationScreen = ({ navigation }) => {
       return;
     }
 
-    // Perform registration logic here
-    console.log('Registering with:', email, password, mobileNumber, username);
-    // Navigate to MainScreen on successful registration
-    navigation.navigate('Main');
+    try {
+      // Make a POST request to your backend server with user data
+      const response = await axios.post("http://192.168.0.103:3000/User",{
+        email,
+        password,
+        mobileNumber,
+        username,
+      });
+
+      console.log('User registered:', response.data);
+      // Navigate to MainScreen on successful registration
+      navigation.navigate('Login');
+    } catch (error) {
+      setError('Error registering user');
+      console.error('Error registering user:', error);
+    }
   };
 
   return (
