@@ -1,40 +1,20 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import firebase from '../components/firebase';
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+
   const handleLogin = async () => {
     try {
-      // Perform login request
-      const response = await axios.post('http://192.168.0.103:3000/Users', { email, password });
-      const { uid, userData } = response.data;
-
-      // Store session data in AsyncStorage
-      await storeSessionData(uid, userData);
-
-      // Navigate to MainScreen on successful login
+      await firebase.auth().signInWithEmailAndPassword(email, password);
       navigation.navigate('Main');
     } catch (error) {
-      console.error('Error logging in:', error.message);
-      // Handle login error (e.g., display error message to user)
+      console.error('Login Error:', error);
     }
   };
-
-  // Function to store session data
-  const storeSessionData = async (uid, userData) => {
-    try {
-      await AsyncStorage.setItem('uid', uid);
-      await AsyncStorage.setItem('userData', JSON.stringify(userData));
-    } catch (error) {
-      console.error('Error storing session data:', error);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <Text style={styles.welcome}>Welcome back!</Text>

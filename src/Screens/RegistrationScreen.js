@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import axios from 'axios'; // Import Axios
+import firebase  from '../components/firebase'; // Import Firebase instance
 
 const RegistrationScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -23,16 +23,18 @@ const RegistrationScreen = ({ navigation }) => {
     }
 
     try {
-      // Make a POST request to your backend server with user data
-      const response = await axios.post("http://192.168.0.103:3000/User",{
+      // Register user with email and password using Firebase Authentication
+      const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
+
+      // Add additional user information to Firestore
+      await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
         email,
-        password,
         mobileNumber,
         username,
       });
 
-      console.log('User registered:', response.data);
-      // Navigate to MainScreen on successful registration
+      console.log('User registered:', userCredential.user);
+      // Navigate to LoginScreen on successful registration
       navigation.navigate('Login');
     } catch (error) {
       setError('Error registering user');

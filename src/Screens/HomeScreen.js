@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 14,
     color: 'black',
-    fontWeight: 'bold',
+    //fontWeight: 'bold',
   },
   card: {
     width: '100%',

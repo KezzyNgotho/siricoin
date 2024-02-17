@@ -16,7 +16,7 @@ app.get("/", (request, response) => {
 });
 
 app.post("/users", db.createUser);
-app.get("/users/login", db.loginUser);
+app.get("/user/login", db.loginUser);
 
 app.listen(port, () => {
   console.log(`App running on port ${port}.`);
