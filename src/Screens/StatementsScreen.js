@@ -1,8 +1,10 @@
+// Import necessary modules
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, PermissionsAndroid, Platform } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
+import firebase from '../components/firebase'; // Import Firebase configuration
 
 const StatementsScreen = () => {
     const navigation = useNavigation();
@@ -11,6 +13,7 @@ const StatementsScreen = () => {
 
     useEffect(() => {
         requestStoragePermission();
+        fetchStatements(); // Fetch statements from Firebase
     }, []);
 
     // Function to request storage permission
@@ -39,21 +42,22 @@ const StatementsScreen = () => {
         }
     };
 
-    // Sample statement data (replace with actual data)
-    const demoStatements = [
-        {
-            id: '1', type: 'Income', transactions: [
-                { id: '1', date: '2023-12-01', description: 'Sample income transaction 1', amount: 500 },
-                { id: '2', date: '2023-12-02', description: 'Sample income transaction 2', amount: 1000 },
-            ]
-        },
-        {
-            id: '2', type: 'Investment', transactions: [
-                { id: '1', date: '2023-12-01', description: 'Sample investment transaction 1', amount: 700 },
-                { id: '2', date: '2023-12-02', description: 'Sample investment transaction 2', amount: 1500 },
-            ]
-        },
-    ];
+    // Function to fetch statements from Firebase
+    const fetchStatements = async () => {
+        try {
+            const currentUser = firebase.auth().currentUser;
+            if (currentUser) {
+                const userId = currentUser.uid;
+
+                // Fetch statements from Firebase
+                const snapshot = await firebase.firestore().collection('Statements').where('userId', '==', userId).get();
+                const fetchedStatements = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })); // Add 'id' field to each document
+                setStatementList(fetchedStatements);
+            }
+        } catch (error) {
+            console.error('Error fetching statements:', error);
+        }
+    };
 
     // Function to handle changing the statement type
     const handleStatementTypeChange = (type) => {
@@ -88,28 +92,18 @@ const StatementsScreen = () => {
             <h1>${statementType === 'Income' ? 'Income Statement' : 'Investment Statement'}</h1>
     `;
 
-        const selectedStatement = demoStatements.find(statement => statement.type === statementType);
-        if (selectedStatement) {
-            const transactionsByMonth = groupTransactionsByMonth(selectedStatement.transactions);
-            transactionsByMonth.forEach((monthTransactions, month) => {
+        // You can use statementList to generate HTML content dynamically here
+        statementList
+            .filter(statement => statement.type === statementType)
+            .forEach(statement => {
                 htmlContent += `
-          <h2>${month}</h2>
-          <ul>
-        `;
-                monthTransactions.forEach(transaction => {
-                    htmlContent += `
-            <li>
-              <p>Date: ${transaction.date}</p>
-              <p>Description: ${transaction.description}</p>
-              <p>Amount: ${transaction.amount}</p>
-            </li>
-          `;
-                });
-                htmlContent += `
-          </ul>
-        `;
+                    <div>
+                        <p>Date: ${new Date(statement.date.seconds * 1000).toLocaleDateString()}</p>
+                        <p>Description: ${statement.description}</p>
+                        <p>Amount: ${statement.amount}</p>
+                    </div>
+                `;
             });
-        }
 
         htmlContent += `
           </div>
@@ -119,22 +113,6 @@ const StatementsScreen = () => {
 
         return htmlContent;
     };
-
-
-    // Function to group transactions by month
-    const groupTransactionsByMonth = (transactions) => {
-        const groupedTransactions = new Map();
-        transactions.forEach(transaction => {
-            const date = new Date(transaction.date);
-            const month = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-            if (!groupedTransactions.has(month)) {
-                groupedTransactions.set(month, []);
-            }
-            groupedTransactions.get(month).push(transaction);
-        });
-        return groupedTransactions;
-    };
-
 
     return (
         <View style={styles.container}>
@@ -166,11 +144,11 @@ const StatementsScreen = () => {
                     {statementType === 'Income' ? 'Income Statement' : 'Investment Statement'}
                 </Text>
                 <FlatList
-                    data={demoStatements.find(statement => statement.type === statementType)?.transactions || []}
+                    data={statementList.filter(statement => statement.type === statementType)}
                     keyExtractor={(item) => item.id}
                     renderItem={({ item }) => (
                         <View style={styles.statementItem}>
-                            <Text>Date: {item.date}</Text>
+                            <Text>Date: {new Date(item.date.seconds * 1000).toLocaleDateString()}</Text>
                             <Text>Description: {item.description}</Text>
                             <Text>Amount: {item.amount}</Text>
                         </View>

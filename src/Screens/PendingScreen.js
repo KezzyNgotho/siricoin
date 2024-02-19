@@ -1,28 +1,52 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import firebase from '../components/firebase'; // Import Firebase
 
 const PendingScreen = () => {
   const navigation = useNavigation();
   const [pendingType, setPendingType] = useState('Income');
   const [pendingList, setPendingList] = useState([]);
+  const [amount, setAmount]= useState([]);
+  useEffect(() => {
+    // Fetch pending withdrawals on component mount
+    fetchPendingWithdrawals();
+  }, [pendingType]); // Re-fetch when pendingType changes
 
-  // Sample pending withdrawals data (replace with actual data)
-  const allPendingWithdrawals = [
-    { id: '1', type: 'Income', amount: 500, details: 'Sample income withdrawal' },
-    { id: '2', type: 'Investment', amount: 1000, details: 'Sample investment withdrawal' },
-    { id: '3', type: 'Income', amount: 300, details: 'Another sample income withdrawal' },
-  ];
+  const fetchPendingWithdrawals = async () => {
+    try {
+      // Get the currently authenticated user
+      const currentUser = firebase.auth().currentUser;
+
+      // Check if the user is logged in
+      if (currentUser) {
+        const userId = currentUser.uid;
+
+        // Fetch pending withdrawals for the user from Firestore
+        const pendingSnapshot = await firebase
+          .firestore()
+          .collection('Pending')
+          .where('userId', '==', userId) // Assuming userId is stored in the document
+          .where('type', '==', pendingType)
+          
+          .get();
+
+        const pendingData = pendingSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        setPendingList(pendingData);
+      }
+    } catch (error) {
+      console.error('Error fetching pending withdrawals:', error);
+    }
+  };
 
   // Function to handle changing the pending type
   const handlePendingTypeChange = (type) => {
     setPendingType(type);
-  };
-
-  // Function to filter pending withdrawals based on type
-  const getPendingWithdrawalsByType = () => {
-    return allPendingWithdrawals.filter((withdrawal) => withdrawal.type === pendingType);
   };
 
   // Function to render each item in the pending list
@@ -31,9 +55,7 @@ const PendingScreen = () => {
       <Text style={styles.pendingItemType}>Type: {item.type}</Text>
       <Text style={styles.pendingItemAmount}>Amount: {item.amount}</Text>
       <Text style={styles.pendingItemDetails}>Details: {item.details}</Text>
-    </View>
-  );
-
+    </View>)
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -59,7 +81,7 @@ const PendingScreen = () => {
       <View style={styles.pendingListContainer}>
         <Text style={styles.pendingListTitle}>Pending</Text>
         <FlatList
-          data={getPendingWithdrawalsByType()}
+          data={pendingList}
           keyExtractor={(item) => item.id}
           renderItem={renderPendingItem}
         />

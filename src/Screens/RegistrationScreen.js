@@ -16,23 +16,27 @@ const RegistrationScreen = ({ navigation }) => {
       setError('Please fill in all fields');
       return;
     }
-
+  
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-
+  
     try {
       // Register user with email and password using Firebase Authentication
       const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-
-      // Add additional user information to Firestore
+  
+      // Generate a unique account number starting with 'scoin'
+      const accountNumber = 'scoin' + Math.floor(1000 + Math.random() * 9000);
+  
+      // Add additional user information to Firestore including the generated account number
       await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
         email,
         mobileNumber,
         username,
+        accountNumber, // Add the generated account number to the user data
       });
-
+  
       console.log('User registered:', userCredential.user);
       // Navigate to LoginScreen on successful registration
       navigation.navigate('Login');
@@ -41,7 +45,7 @@ const RegistrationScreen = ({ navigation }) => {
       console.error('Error registering user:', error);
     }
   };
-
+  
   return (
     <View style={styles.container}>
       <Text style={styles.welcome}>Welcome to YourSiriCoin!</Text>

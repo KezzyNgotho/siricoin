@@ -1,67 +1,129 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, Modal, Button } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, TextInput, Modal } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
+import firebase from '../components/firebase';
 
 const WithdrawScreen = () => {
-    const navigation = useNavigation();
+  const navigation = useNavigation();
   const [withdrawType, setWithdrawType] = useState('Income');
   const [amount, setAmount] = useState('');
-  const [balance, setBalance] = useState(5000); // Sample balance, replace with actual balance
+  const [balance, setBalance] = useState(0);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Function to calculate minimum and maximum amount based on withdraw type
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          const userId = currentUser.uid;
+
+          let totalBalance = 0;
+          const snapshot = await firebase
+            .firestore()
+            .collection('Investment')
+            .where('userId', '==', userId)
+            .get();
+
+          snapshot.forEach((doc) => {
+            totalBalance += doc.data().amount;
+          });
+
+          setBalance(totalBalance);
+        }
+      } catch (error) {
+        console.error('Error fetching balance:', error);
+      }
+    };
+
+    fetchBalance();
+  }, [withdrawType]); // Fetch balance when withdrawType changes
+
   const calculateMinMaxAmount = () => {
     let minAmount = 0;
     let maxAmount = balance;
 
     if (withdrawType === 'Income') {
-      // Set minimum amount for Income type
       minAmount = 100; // Example: Minimum amount for Income
     } else if (withdrawType === 'Investment') {
-      // Set minimum amount for Investment type
       minAmount = 500; // Example: Minimum amount for Investment
     }
 
     return { minAmount, maxAmount };
   };
 
-  const handleWithdraw = () => {
-    // Check if amount is valid
-    if (parseInt(amount) <= balance && parseInt(amount) > 0) {
-      // Withdraw logic here
-      console.log('Withdraw successful');
-      // Show success message
-      setShowSuccessMessage(true);
-      // Hide success message after 3 seconds
-      setTimeout(() => setShowSuccessMessage(false), 3000);
+  const handleWithdraw = async () => {
+    const withdrawalAmount = parseInt(amount);
+    if (withdrawalAmount <= balance && withdrawalAmount > 0) {
+      try {
+        if (withdrawType === 'Investment') {
+          const currentUser = firebase.auth().currentUser;
+          if (currentUser) {
+            const userId = currentUser.uid;
+
+            const investmentSnapshot = await firebase
+              .firestore()
+              .collection('Investment')
+              .where('userId', '==', userId)
+              .get();
+
+            const batch = firebase.firestore().batch();
+            investmentSnapshot.forEach((doc) => {
+              const investmentRef = firebase.firestore().collection('Investment').doc(doc.id);
+              const currentBalance = doc.data().amount;
+              const newBalance = currentBalance - withdrawalAmount;
+              batch.update(investmentRef, { amount: newBalance });
+            });
+
+            await batch.commit();
+          }
+        }
+
+        await createPendingTransaction(withdrawalAmount);
+
+        console.log('Withdrawal successful!');
+        setShowSuccessMessage(true);
+        setTimeout(() => setShowSuccessMessage(false), 3000);
+      } catch (error) {
+        console.error('Error handling withdrawal:', error);
+        setAlertMessage('Error handling withdrawal. Please try again later.');
+        setShowAlert(true);
+        setTimeout(() => setShowAlert(false), 3000);
+      }
     } else {
-      // Set alert message
       setAlertMessage('Invalid amount. Please enter a valid amount to withdraw.');
-      // Show alert
       setShowAlert(true);
-      // Hide alert after 3 seconds
       setTimeout(() => setShowAlert(false), 3000);
     }
   };
 
-  // Calculate minimum and maximum amount
-  const { minAmount, maxAmount } = calculateMinMaxAmount();
+  const createPendingTransaction = async (withdrawalAmount) => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        const userId = currentUser.uid;
 
-  // Function to update balance based on withdrawal type
-  const updateBalance = (type) => {
-    if (type === 'Income') {
-      setBalance(5000); // Example: Set income balance
-    } else if (type === 'Investment') {
-      setBalance(10000); // Example: Set investment balance
+        await firebase.firestore().collection('Pending').add({
+          userId: userId,
+          type: withdrawType,
+          amount: withdrawalAmount,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        console.log('Pending transaction created');
+      }
+    } catch (error) {
+      console.error('Error creating pending transaction:', error);
+      throw error;
     }
   };
 
+  const { minAmount, maxAmount } = calculateMinMaxAmount();
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Image source={require('../assets/icons8-back-50.png')} style={styles.backIcon} />
@@ -69,17 +131,11 @@ const WithdrawScreen = () => {
         <Text style={styles.title}>Withdraw</Text>
       </View>
 
-      {/* Select Withdraw Type */}
       <View style={styles.dropdownContainer}>
-         {/* Display Balance */}
-      <Text style={styles.balance}>Balance: Kes {balance}</Text>
-
+        <Text style={styles.balance}>Balance: Kes {balance}</Text>
         <Picker
           selectedValue={withdrawType}
-          onValueChange={(itemValue) => {
-            setWithdrawType(itemValue);
-            updateBalance(itemValue); // Update balance when type changes
-          }}
+          onValueChange={(itemValue) => setWithdrawType(itemValue)}
           style={styles.dropdown}
         >
           <Picker.Item label="Income" value="Income" />
@@ -87,8 +143,6 @@ const WithdrawScreen = () => {
         </Picker>
       </View>
 
-     
-      {/* Enter Amount */}
       <Text style={styles.label}>Enter Amount</Text>
       <TextInput
         value={amount}
@@ -97,17 +151,14 @@ const WithdrawScreen = () => {
         style={styles.input}
       />
 
-      {/* Display Minimum and Maximum Amount */}
       <Text style={styles.amountLimits}>
         Minimum: Kes{minAmount} - Maximum: Kes{maxAmount}
       </Text>
 
-      {/* Withdraw Button */}
       <TouchableOpacity style={styles.withdrawButton} onPress={handleWithdraw}>
         <Text style={styles.withdrawButtonText}>Withdraw</Text>
       </TouchableOpacity>
 
-      {/* Alert Modal */}
       <Modal
         animationType="fade"
         transparent={true}
@@ -121,7 +172,6 @@ const WithdrawScreen = () => {
         </View>
       </Modal>
 
-      {/* Success Message */}
       {showSuccessMessage && (
         <View style={styles.successMessage}>
           <Text style={styles.successMessageText}>Withdrawal successful!</Text>
@@ -136,7 +186,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 40,
-    backgroundColor:'white'
+    backgroundColor: 'white'
   },
   header: {
     flexDirection: 'row',
@@ -150,8 +200,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    //fontWeight: 'bold',
-    color:'black'
+    color: 'black'
   },
   dropdownContainer: {
     marginBottom: 20,
@@ -164,12 +213,12 @@ const styles = StyleSheet.create({
   balance: {
     fontSize: 18,
     marginBottom: 20,
-    color:'#1D5D9B'
+    color: '#1D5D9B'
   },
   label: {
     fontSize: 16,
     marginBottom: 20,
-    color:'black'
+    color: 'black'
   },
   input: {
     height: 40,
@@ -185,7 +234,6 @@ const styles = StyleSheet.create({
     color: '#1D5D9B',
   },
   withdrawButton: {
-   
     alignItems: 'center',
     backgroundColor: '#1D5D9B',
     paddingVertical: 15,
@@ -216,19 +264,18 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     elevation: 5,
     marginBottom: 20,
-   // alignContent:'center',
-    alignItems:'center'
+    alignItems: 'center'
   },
   alertText: {
     fontSize: 16,
     marginBottom: 20,
-    color:'white'
+    color: 'white'
   },
   successMessageText: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 20,
-    color:'#fff'
+    color: '#fff'
   },
 });
 

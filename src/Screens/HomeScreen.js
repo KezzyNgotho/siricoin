@@ -1,14 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import firebase from '../components/firebase';
+
 const HomeScreen = () => {
 
   const navigation = useNavigation();
+ 
   const [showCard, setShowCard] = useState(false); // State variable for card expansion
-
+  const [income, setIncome] = useState(0);
+  const [investment, setInvestment] = useState(0);
   const toggleCardVisibility = () => {
     setShowCard(!showCard);
   };
+  const [username, setUsername] = useState('');
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          const uid = currentUser.uid;
+          // Fetch income data
+          const incomeSnapshot = await firebase.firestore().collection('Income').where('userId', '==', uid).get();
+          let totalIncome = 0;
+          incomeSnapshot.forEach((doc) => {
+            const incomeData = doc.data();
+            totalIncome += incomeData.amount;
+          });
+          setIncome(totalIncome);
+          // Fetch investment data
+          const investmentSnapshot = await firebase.firestore().collection('Investment').where('userId', '==', uid).get();
+          let totalInvestment = 0;
+          investmentSnapshot.forEach((doc) => {
+            const investmentData = doc.data();
+            totalInvestment += investmentData.amount;
+          });
+          setInvestment(totalInvestment);
+        } else {
+          console.log('No user is currently logged in');
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -16,7 +53,7 @@ const HomeScreen = () => {
     <View style={styles.logoContainer}>
       <View style={styles.logoBackground}>
         <Image
-          source={require('../assets/icons8-invest-100.png')}
+          source={require('../assets/icons8-return-on-investment-99.png')}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -28,7 +65,8 @@ const HomeScreen = () => {
         <Text style={styles.welcomeMessage}>Welcome back!</Text>
       </View>
       <View style={styles.usernameContainer}>
-        <Text style={styles.username}>KEZIE NGOTHO </Text>
+      <Text style={styles.username}>{username}</Text>
+
       </View>
     </View>
     {/* Button section */}
@@ -110,15 +148,15 @@ const HomeScreen = () => {
           {/* Accounts */}
           <View style={styles.expandedItem}>
             <Text style={styles.expandedItemText}>Income</Text>
-            <Text style={styles.expandedItemBalance}>ksh 1000</Text>
+            <Text style={styles.expandedItemBalance}>ksh {income}</Text>
           </View>
           <View style={styles.expandedItem}>
             <Text style={styles.expandedItemText}>Investment</Text>
-            <Text style={styles.expandedItemBalance}>ksh 3000</Text>
+            <Text style={styles.expandedItemBalance}>ksh {investment}</Text>
           </View>
           <View style={styles.expandedItem}>
             <Text style={styles.expandedItemText}>Fixed</Text>
-            <Text style={styles.expandedItemBalance}>ksh 1000</Text>
+            <Text style={styles.expandedItemBalance}>ksh 0.00</Text>
           </View>
         </View>
       )}
@@ -181,7 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: 29,
   },
   username: {
-    fontSize: 18,
+    fontSize: 16,
     color: 'black',
     fontWeight:"bold"
   },
@@ -249,7 +287,7 @@ const styles = StyleSheet.create({
     color: 'black',
   },
   expandedItemBalance: {
-    fontWeight: 'bold',
+   // fontWeight: 'bold',
     color: '#176B87',
   },
   expandedTitle: {

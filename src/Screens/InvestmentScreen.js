@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, Alert } from 'react-native';
+import firebase from '../components/firebase';
 
 const InvestmentScreen = () => {
   const [amount, setAmount] = useState('');
@@ -19,21 +20,76 @@ const InvestmentScreen = () => {
     };
   }, [showSuccessMessage]);
 
-  const handleInvest = () => {
+  const handleInvest = async () => {
     if (amount === '') {
       Alert.alert('Error', 'Please enter the amount to invest');
-    } else if (selectedOption === 'otherNumber' && otherNumber === '') {
-      Alert.alert('Error', 'Please enter the other number');
-    } else {
+      return;
+    }
+  
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        console.log('No user is currently logged in');
+        return;
+      }
+  
+      const uid = currentUser.uid;
+      let selectedOptionValue = selectedOption === 'myNumber' ? otherNumber : otherNumber;
+  
+      // Fetch the user's mobile number if selected option is 'myNumber'
+      if (selectedOption === 'myNumber') {
+        const userDoc = await firebase.firestore().collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          selectedOptionValue = userData.mobileNumber;
+        } else {
+          console.log('User document not found');
+          return;
+        }
+      }
+  
+      // Check if the user has an existing investment document
+      const investmentRef = firebase.firestore().collection('Investment').doc(uid);
+      const investmentDoc = await investmentRef.get();
+  
+      if (investmentDoc.exists) {
+        // Update the existing document with the new amount
+        const currentAmount = investmentDoc.data().amount;
+        await investmentRef.update({
+          amount: currentAmount + parseFloat(amount),
+        });
+      } else {
+        // Create a new document if it doesn't exist
+        await investmentRef.set({
+          userId: uid,
+          amount: parseFloat(amount),
+          date: firebase.firestore.FieldValue.serverTimestamp(),
+          selectedOption: selectedOptionValue,
+        });
+      }
+  
+      // Record the statement in the Statements collection
+      await firebase.firestore().collection('Statements').add({
+        userId: uid,
+        type: 'Investment',
+        amount: parseFloat(amount),
+        date: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+  
       setShowSuccessMessage(true);
+  
+    } catch (error) {
+      console.error('Error recording transaction:', error);
+      Alert.alert('Error', 'Failed to record the transaction. Please try again.');
     }
   };
-
+  
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Investment</Text>
       <View style={styles.iconContainer}>
-        <Image source={require('../assets/icons8-invest-100.png')} style={styles.icon} />
+        <Image source={require('../assets/icons8-return-on-investment-99.png')} style={styles.icon} />
       </View>
       <Text style={styles.minAmountText}>Minimum Amount: kes 120</Text>
       <TextInput
@@ -86,9 +142,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-   // fontWeight: 'bold',
     marginBottom: 40,
-    color:'black'
+    color: 'black'
   },
   iconContainer: {
     marginBottom: 50,
@@ -100,12 +155,12 @@ const styles = StyleSheet.create({
   minAmountText: {
     fontSize: 16,
     marginBottom: 20,
-    color:"#1D5D9B"
+    color: "#1D5D9B"
   },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
-    backgroundColor:'#EEF5FF',
+    backgroundColor: '#EEF5FF',
     borderRadius: 5,
     paddingVertical: 10,
     paddingHorizontal: 15,
@@ -119,9 +174,9 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: 'black',
     borderRadius: 50,
-    padding: 13,
+    padding: 10,
     marginRight: 10,
   },
   selectedOption: {

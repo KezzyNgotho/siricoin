@@ -1,20 +1,73 @@
-import React from 'react';
+import React ,{useState} from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import ImagePicker from 'react-native-image-crop-picker';
+import { Picker } from '@react-native-picker/picker';
+import firebase from '../components/firebase';
 
 const ProfileScreen = () => {
-  const user = {
-    name: 'KEZIE Ngotho',
-    accountNumber: '1234567890',
-    mobileNumber: '+1234567890',
-    // You can replace the 'profile.jpg' with the actual image source
-    // and handle the logic for changing the profile picture
-    profileImage: require('../assets/icons8-user-30.png'),
+  const [userImageUri, setUserImageUri] = useState(null);
+  const [userData, setUserData] = useState(null);
+
+  useEffect(() => {
+    // Fetch user data from Firestore when the component mounts
+    fetchUserData();
+  }, []);
+
+  const fetchUserData = async () => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        const userId = currentUser.uid;
+        const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+        if (userDoc.exists) {
+          setUserData(userDoc.data());
+        } else {
+          Alert.alert('User data not found.');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      Alert.alert('Failed to fetch user data.');
+    }
   };
 
-  const handleEditProfile = () => {
-    // Handle editing profile picture
-    // This function will be called when the user taps on the profile picture
-    console.log('Edit profile picture');
+  const uploadImage = async () => {
+    try {
+      const image = await ImagePicker.openPicker({
+        width: 300,
+        height: 400,
+        cropping: true,
+      });
+      setUserImageUri(image.path);
+      saveImageUrlToFirebase(image.path);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      Alert.alert('Image selection failed.');
+    }
+  };
+
+  const saveImageUrlToFirebase = async (imageUrl) => {
+    try {
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser) {
+        const userId = currentUser.uid;
+        await firebase.firestore().collection('users').doc(userId).update({
+          profileImageUrl: imageUrl,
+        });
+        Alert.alert('Image URL saved successfully.');
+      }
+    } catch (error) {
+      console.error('Error saving image URL:', error);
+      Alert.alert('Failed to save image URL.');
+    }
+  };
+
+  const handlePressSaveImage = () => {
+    if (userImageUri) {
+      saveImageUrlToFirebase(userImageUri);
+    } else {
+      Alert.alert('Please select an image first.');
+    }
   };
 
   const handlePressInviteFriend = () => {
@@ -43,28 +96,41 @@ const ProfileScreen = () => {
 
   const handlePressLogout = () => {
     console.log('Logout');
-  };
-
-  return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        <View style={styles.topBar}>
-          <TouchableOpacity onPress={handleEditProfile}>
-            <View style={styles.profileContainer}>
-              <Image source={user.profileImage} style={styles.profileImage} />
-              <Image
-                source={require('../assets/icons8-camera-24.png')}
-                style={styles.cameraIcon}
-              />
+  }
+    return (
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <View style={styles.topBar}>
+            <TouchableOpacity onPress={uploadImage}>
+              <View style={styles.profileContainer}>
+                {userImageUri ? (
+                  <Image source={{ uri: userImageUri }} style={styles.profileImage} />
+                ) : (
+                  <Image
+                    source={require('../assets/icons8-user-30.png')}
+                    style={styles.profileImage}
+                  />
+                )}
+                <Image
+                  source={require('../assets/icons8-camera-24.png')}
+                  style={styles.cameraIcon}
+                />
+              </View>
+            </TouchableOpacity>
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>{userData ? userData.name.toUpperCase() : ''}</Text>
+              <Text style={styles.userDetails}>
+                Account Number: {userData ? userData.accountNumber : ''}
+              </Text>
+              <Text style={styles.userDetails}>
+                Mobile Number: {userData ? userData.mobileNumber : ''}
+              </Text>
             </View>
-          </TouchableOpacity>
-          <View style={styles.userInfo}>
-            <Text style={styles.userName}>{user.name.toUpperCase()}</Text>
-            <Text style={styles.userDetails}>Account Number: {user.accountNumber}</Text>
-            <Text style={styles.userDetails}>Mobile Number: {user.mobileNumber}</Text>
           </View>
         </View>
-      </View>
+  
+  
+   
 
       {/* Sections below the card */}
       <View style={styles.section}>
@@ -120,6 +186,10 @@ const ProfileScreen = () => {
           </View>
         </TouchableOpacity>
       </View>
+       {/* Save Image Button */}
+       <TouchableOpacity onPress={handlePressSaveImage} style={styles.saveImageButton}>
+                <Text style={styles.saveImageButtonText}>Save Image</Text>
+            </TouchableOpacity>
     </View>
   );
 };
@@ -134,7 +204,7 @@ const styles = StyleSheet.create({
     margin: 20,
     borderRadius: 10,
     padding: 20,
-    elevation: 3,
+    elevation: 1,
   },
   topBar: {
     flexDirection: 'row',
@@ -151,7 +221,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', // Center the items horizontally
   },
   profileImage: {
-    width: 50, // Adjust size as needed
+    width: 45, // Adjust size as needed
     height: 50, // Adjust size as needed
     borderRadius: 25, // Half of the width and height for a circular shape
   },
@@ -164,7 +234,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'white', // Add a background color for better visibility
     borderRadius: 10, // Half of the width and height for a circular shape
     borderWidth: 2,
-    borderColor: '#888', // Adjust border color as needed
+    borderColor: 'black', // Adjust border color as needed
   },
   userInfo: {
     marginLeft: 20, // Adjust as needed
@@ -207,6 +277,20 @@ const styles = StyleSheet.create({
   logoutSection: {
     marginTop: 'auto', // Push the logout section to the bottom
   },
+
+  saveImageButton: {
+    backgroundColor: '#1D5D9B',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignSelf: 'center',
+    marginTop: 20,
+},
+saveImageButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+},
 });
 
 export default ProfileScreen;
