@@ -1,25 +1,38 @@
 import React, { useState,useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity ,Alert} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import firebase from '../components/firebase';
 
 const HomeScreen = () => {
 
   const navigation = useNavigation();
- 
-  const [showCard, setShowCard] = useState(false); // State variable for card expansion
+
+  const [showCard, setShowCard] = useState(false);
   const [income, setIncome] = useState(0);
   const [investment, setInvestment] = useState(0);
+  const [username, setUsername] = useState('');
+
   const toggleCardVisibility = () => {
     setShowCard(!showCard);
   };
-  const [username, setUsername] = useState('');
+
+ 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         const currentUser = firebase.auth().currentUser;
         if (currentUser) {
           const uid = currentUser.uid;
+          // Fetch user document directly using UID
+          const userDoc = await firebase.firestore().collection('users').doc(uid).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            setUsername(userData.username);
+          } else {
+            console.log('User document not found');
+          }
+  
+
           // Fetch income data
           const incomeSnapshot = await firebase.firestore().collection('Income').where('userId', '==', uid).get();
           let totalIncome = 0;
@@ -28,6 +41,7 @@ const HomeScreen = () => {
             totalIncome += incomeData.amount;
           });
           setIncome(totalIncome);
+
           // Fetch investment data
           const investmentSnapshot = await firebase.firestore().collection('Investment').where('userId', '==', uid).get();
           let totalInvestment = 0;

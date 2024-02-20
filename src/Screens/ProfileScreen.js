@@ -1,5 +1,5 @@
-import React ,{useState} from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import React ,{useState,useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity ,Alert} from 'react-native';
 import ImagePicker from 'react-native-image-crop-picker';
 import { Picker } from '@react-native-picker/picker';
 import firebase from '../components/firebase';
@@ -8,28 +8,41 @@ const ProfileScreen = () => {
   const [userImageUri, setUserImageUri] = useState(null);
   const [userData, setUserData] = useState(null);
 
+ 
+  const [user, setUser] = useState({
+    name: 'Loading...',
+    accountNumber: 'Loading...',
+    mobileNumber: 'Loading...',
+    profileImage: require('../assets/icons8-user-30.png'), // Default profile image
+  });
+
   useEffect(() => {
-    // Fetch user data from Firestore when the component mounts
+    const fetchUserData = async () => {
+      try {
+        const currentUser = firebase.auth().currentUser;
+        if (currentUser) {
+          const userId = currentUser.uid;
+          const userDataSnapshot = await firebase.firestore().collection('users').doc(userId).get();
+          const userData = userDataSnapshot.data();
+          if (userData) {
+            setUser({
+              name: userData.username || 'Unknown',
+              accountNumber: userData.accountNumber || 'Unknown',
+              mobileNumber: userData.mobileNumber || 'Unknown',
+              profileImage: userData.profileImageUrl ? { uri: userData.profileImageUrl } : require('../assets/icons8-user-30.png'),
+            });
+          } else {
+            Alert.alert('User data not found');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        Alert.alert('Error', 'Failed to fetch user data');
+      }
+    };
+
     fetchUserData();
   }, []);
-
-  const fetchUserData = async () => {
-    try {
-      const currentUser = firebase.auth().currentUser;
-      if (currentUser) {
-        const userId = currentUser.uid;
-        const userDoc = await firebase.firestore().collection('users').doc(userId).get();
-        if (userDoc.exists) {
-          setUserData(userDoc.data());
-        } else {
-          Alert.alert('User data not found.');
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      Alert.alert('Failed to fetch user data.');
-    }
-  };
 
   const uploadImage = async () => {
     try {
@@ -99,38 +112,25 @@ const ProfileScreen = () => {
   }
     return (
       <View style={styles.container}>
-        <View style={styles.card}>
-          <View style={styles.topBar}>
-            <TouchableOpacity onPress={uploadImage}>
-              <View style={styles.profileContainer}>
-                {userImageUri ? (
-                  <Image source={{ uri: userImageUri }} style={styles.profileImage} />
-                ) : (
-                  <Image
-                    source={require('../assets/icons8-user-30.png')}
-                    style={styles.profileImage}
-                  />
-                )}
-                <Image
-                  source={require('../assets/icons8-camera-24.png')}
-                  style={styles.cameraIcon}
-                />
-              </View>
-            </TouchableOpacity>
-            <View style={styles.userInfo}>
-              <Text style={styles.userName}>{userData ? userData.name.toUpperCase() : ''}</Text>
-              <Text style={styles.userDetails}>
-                Account Number: {userData ? userData.accountNumber : ''}
-              </Text>
-              <Text style={styles.userDetails}>
-                Mobile Number: {userData ? userData.mobileNumber : ''}
-              </Text>
+      {/* Profile card */}
+      <View style={styles.card}>
+        {/* Profile information */}
+        <View style={styles.topBar}>
+          {/* Profile image */}
+          <TouchableOpacity onPress={uploadImage}>
+            <View style={styles.profileContainer}>
+              <Image source={user.profileImage} style={styles.profileImage} />
+              <Image source={require('../assets/icons8-camera-24.png')} style={styles.cameraIcon} />
             </View>
+          </TouchableOpacity>
+          {/* User information */}
+          <View style={styles.userInfo}>
+            <Text style={styles.userName}>{user.name ? user.name.toUpperCase() : 'Loading...'}</Text>
+            <Text style={styles.userDetails}>Account Number: {user.accountNumber}</Text>
+            <Text style={styles.userDetails}>Mobile Number: {user.mobileNumber}</Text>
           </View>
         </View>
-  
-  
-   
+      </View>
 
       {/* Sections below the card */}
       <View style={styles.section}>

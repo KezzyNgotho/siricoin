@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState,} from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import firebase  from '../components/firebase'; // Import Firebase instance
+import firebase from '../components/firebase'; // Import Firebase instance
 
 const RegistrationScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
@@ -16,19 +16,19 @@ const RegistrationScreen = ({ navigation }) => {
       setError('Please fill in all fields');
       return;
     }
-  
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
-  
+
     try {
       // Register user with email and password using Firebase Authentication
       const userCredential = await firebase.auth().createUserWithEmailAndPassword(email, password);
-  
-      // Generate a unique account number starting with 'scoin'
+
+      // Generate a unique account number starting with 'scoin' and followed by 4 random digits
       const accountNumber = 'scoin' + Math.floor(1000 + Math.random() * 9000);
-  
+
       // Add additional user information to Firestore including the generated account number
       await firebase.firestore().collection('users').doc(userCredential.user.uid).set({
         email,
@@ -36,7 +36,7 @@ const RegistrationScreen = ({ navigation }) => {
         username,
         accountNumber, // Add the generated account number to the user data
       });
-  
+
       console.log('User registered:', userCredential.user);
       // Navigate to LoginScreen on successful registration
       navigation.navigate('Login');
@@ -45,7 +45,7 @@ const RegistrationScreen = ({ navigation }) => {
       console.error('Error registering user:', error);
     }
   };
-  
+
   return (
     <View style={styles.container}>
       <Text style={styles.welcome}>Welcome to YourSiriCoin!</Text>
